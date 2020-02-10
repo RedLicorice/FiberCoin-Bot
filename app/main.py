@@ -101,7 +101,12 @@ def do_start_user(client, message, *args, **kwargs):
 				if not name:
 					name = "{} {}".format(message.from_user.first_name, message.from_user.last_name)
 
-				new_user = User(chat_id=message.chat.id, name=name, code=(random.randint(10000,9999999)^message.chat.id))
+				new_user = User(
+					chat_id=message.chat.id,
+					name=name,
+					code=(random.randint(10000,9999999)^message.chat.id),
+					coins=math.floor(FC_PER_FIBBERATION/2)
+				)
 				session.add(new_user)
 				#session.commit()
 
@@ -132,7 +137,13 @@ def do_start_user(client, message, *args, **kwargs):
 		if not name:
 			name = "{} {}".format(message.from_user.first_name, message.from_user.last_name)
 
-		new_user = User(chat_id=message.chat.id, name=name, code=(random.randint(10000,9999999)^message.chat.id), privilege=1)
+		new_user = User(
+			chat_id=message.chat.id,
+			name=name,
+			code=(random.randint(10000,9999999)^message.chat.id),
+			coins=math.floor(FC_PER_FIBBERATION / 2),
+			privilege=1
+		)
 		session.add(new_user)
 		session.commit()
 
