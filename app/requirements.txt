@@ -1,3 +1,5 @@
 pyrogram
 sqlalchemy
 python-dotenv
+wrapt
+humanize

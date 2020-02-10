@@ -3,3 +3,4 @@
 *.idea
 *.db
 *.session
+*.session-journal
