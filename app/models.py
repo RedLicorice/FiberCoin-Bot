@@ -59,11 +59,16 @@ class Mine(Base):
 	last = relationship(User, foreign_keys=last_id)
 	owner = relationship(User, foreign_keys=owner_id)
 
-if __name__ == '__main__':
-	load_dotenv()
+def migrate():
 	if not os.path.exists(os.getenv("DB_FILE")):
 		engine = create_engine('sqlite:///'+os.getenv("DB_FILE"))
 		Base.metadata.create_all(engine)
 		print("fibberbot.db created!")
-	else:
+		return True
+	return False
+
+
+if __name__ == '__main__':
+	load_dotenv()
+	if not migrate():
 		print("fibberbot.db already exists.\nPlease delete it if you want to recreate it.")

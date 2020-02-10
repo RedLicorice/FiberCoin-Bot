@@ -1,7 +1,7 @@
 from pyrogram import Client, Filters, InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from models import Base, User, Invitation, Mine, Tip
+from models import migrate, Base, User, Invitation, Mine, Tip
 import random
 import threading
 import os
@@ -348,4 +348,5 @@ def do_check_group(client, message, *args, **kwargs):
 	app.delete_messages(message.chat.id, message.message_id)
 
 if __name__ == '__main__':
+	migrate()
 	app.run()  # Automatically start() and idle()
