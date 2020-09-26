@@ -1,7 +1,7 @@
 from pyrogram import Client, Filters, InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from models import migrate, Base, User, Invitation, Mine, Tip
+from models import migrate, Base, User, Invitation, Tip, Pool, PoolMessage
 import random
 import threading
 import os
@@ -159,7 +159,7 @@ def do_list_user(client, message, *args, **kwargs):
 	invites = session.query(Invitation).filter(Invitation.signer == user).all()
 	reply = "Hai fibberato **{}** Persone!\n".format(len(invites))
 	for inv in invites:
-		reply += "{} — 💸**{}**\n".format(MENTION.format(inv.signed.name, inv.signed.chat_id), inv.signed.coin)
+		reply += "{} — 💸**{}**\n".format(MENTION.format(inv.signed.name, inv.signed.chat_id), inv.signed.coins)
 	message.reply(reply)
 
 @app.on_message(Filters.command("tag") & Filters.private)
@@ -188,6 +188,8 @@ def do_bonus_user(client, message, *args, **kwargs):
 		humanize.i18n.deactivate()
 		return
 	amount = random.randint(*DAILY_AMOUNT_RANGE)
+	if user.coins < 0:
+		user.coins = 0
 	user.coins += amount
 	user.last_dig = datetime.utcnow()
 	message.reply("Hai ricevuto 💸**{} FiberCoin**\n"
@@ -207,7 +209,7 @@ def do_about_user(client, message):
 ##
 # Both Chat and Group functions
 ##
-@app.on_message(Filters.regex("/help"))
+@app.on_message(Filters.command("help"))
 def do_help_user(client, message):
 	m = app.send_message(chat_id=message.chat.id,
 		text="**Comandi Chat**\n"
@@ -235,6 +237,15 @@ def do_help_user(client, message):
 def do_tip_group(client, message, *args, **kwargs):
 	user = kwargs.get('user')
 	session = kwargs.get('session')
+	if user.coins <= 0:
+		m = app.send_message(chat_id=message.chat.id, text="⛔ {}: Non possiedi abbastanza FiberCoin." \
+							 .format(MENTION.format(user.name, user.chat_id)))
+		# Queue a job for deleting the message
+		threading.Timer(10.0, delete_message_cb,
+						kwargs={'chat_id': message.chat.id, 'message_id': m.message_id}).start()
+		# Delete messages which are not replies to other messages
+		app.delete_messages(message.chat.id, message.message_id)
+		return
 	if not message.reply_to_message:
 		m = app.send_message(chat_id=message.chat.id, text="⛔ {}: Devi rispondere al messaggio da tippare" \
 							 .format(MENTION.format(user.name, user.chat_id)))
@@ -294,7 +305,7 @@ def do_tip_group(client, message, *args, **kwargs):
 
 		message.reply_to_message.reply("● **{} FiberCoin**{} ●\n{} ha tippato".format(
 			tip.total,
-			" 👌 " if tip.total == 69 or tip.total == 420 else "",
+			" 👌 " if any(word in str(tip.total) for word in ["69", "420"]) else "",
 			MENTION.format(user.name, user.chat_id)
 		))
 	#Delete tip request message
@@ -346,6 +357,26 @@ def do_check_group(client, message, *args, **kwargs):
 	threading.Timer(30.0, delete_message_cb, kwargs={'chat_id':message.chat.id,'message_id':m.message_id}).start()
 	# Delete check request message
 	app.delete_messages(message.chat.id, message.message_id)
+
+@app.on_message(Filters.command("pool") & Filters.group)
+@with_session
+def do_pool_group(client, message, *args, **kwargs):
+	session = kwargs.get('session')
+	# Get the user
+	user = session.query(User).filter(User.chat_id == message.from_user.id).first()
+	if not user.privilege:
+		message.reply("🚫 Non possiedi i privilegi necessari per creare un pool.")
+		return
+	new_pool = Pool(
+		chat_id=message.chat.id,
+		last = user,
+		owner = user
+	)
+	session.add(new_pool)
+	session.commit()
+	app.send_message(chat_id=message.chat.id, text="👌 Questo gruppo è un Mining Pool!\n"
+												   "Quando un utente posta un messaggio, rispondi con il comando /back\n"
+												   "Quando un messaggio ha 100 back viene pubblicato nel canale.")
 
 if __name__ == '__main__':
 	migrate()

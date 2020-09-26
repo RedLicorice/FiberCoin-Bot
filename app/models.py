@@ -42,15 +42,12 @@ class Tip(Base):
 	author = relationship(User, foreign_keys=author_id)
 	last_tipper = relationship(User, foreign_keys=last_tip_id)
 
-class Mine(Base):
-	__tablename__ = 'mines'
+class Pool(Base):
+	__tablename__ = 'pool'
 	id = Column(Integer, primary_key=True)
-	code = Column(Integer, unique=True, nullable=False)
-	progress = Column(Integer, default=10)
-	income = Column(Integer, default=0)
-	wealth = Column(Integer, default=0)
-	prime = Column(Integer, default=0)
-	offset = Column(Integer, default=0)
+	chat_id = Column(Integer, nullable=False)
+	mined = Column(Integer, default=0)
+
 	last_id = Column(Integer, ForeignKey('users.id'))
 	owner_id = Column(Integer, ForeignKey('users.id'))
 	created_at = Column(DateTime, default=datetime.utcnow)
@@ -58,6 +55,19 @@ class Mine(Base):
 
 	last = relationship(User, foreign_keys=last_id)
 	owner = relationship(User, foreign_keys=owner_id)
+
+class PoolMessage(Base):
+	__tablename__ = 'pool_messages'
+	chat_id =  Column(Integer, nullable=False, primary_key=True)
+	message_id =  Column(Integer, nullable=False, primary_key=True)
+	author_id = Column(Integer, ForeignKey('users.id'))
+	last_backer_id = Column(Integer, ForeignKey('users.id'))
+	backed =  Column(Integer, default=0)
+	published = Column(Integer, default=0)
+
+	created_at = Column(DateTime, default=datetime.utcnow)
+	author = relationship(User, foreign_keys=author_id)
+	last_backer = relationship(User, foreign_keys=last_backer_id)
 
 def migrate():
 	if not os.path.exists(os.getenv("DB_FILE")):
